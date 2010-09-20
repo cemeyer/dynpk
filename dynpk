@@ -19,13 +19,15 @@ for l in re.findall( "/[^ ]+", so ):
 
 shutil.copy( FNAME, DIRN )
 
-wrapper_name = os.path.join( DIRN, "%s-wrapped" % FNAME )
+print DIRN
+wrapper_name = os.path.join( DIRN, "%s-wrapped" % os.path.basename(FNAME) )
+print wrapper_name
 f = open( wrapper_name , "w" )
 f.write( """#!/bin/bash
 
 export LD_LIBRARY_PATH=`pwd`
 exec ./%s
-""" % FNAME )
+""" % os.path.basename(FNAME) )
 f.close()
 
 # Add executable permissions

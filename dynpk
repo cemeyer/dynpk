@@ -1,0 +1,33 @@
+#!/bin/env python
+import os, sys, subprocess, re, shutil, stat
+
+if len(sys.argv) < 3:
+    print "Usage: %s fname dir" % (os.path.basename(sys.argv[0]))
+    sys.exit(1)
+FNAME, DIRN = sys.argv[1], sys.argv[2]
+
+os.mkdir( DIRN )
+
+p = subprocess.Popen("ldd %s | grep '=>'" % FNAME,
+                     shell = True,
+                     stdout = subprocess.PIPE)
+so, se = p.communicate()
+assert p.wait() == 0
+
+for l in re.findall( "/[^ ]+", so ):
+    shutil.copy( l, DIRN )
+
+shutil.copy( FNAME, DIRN )
+
+wrapper_name = os.path.join( DIRN, "%s-wrapped" % FNAME )
+f = open( wrapper_name , "w" )
+f.write( """#!/bin/bash
+
+export LD_LIBRARY_PATH=`pwd`
+exec ./%s
+""" % FNAME )
+f.close()
+
+# Add executable permissions
+os.chmod( wrapper_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR )
+

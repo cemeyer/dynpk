@@ -2,7 +2,7 @@
 import os, sys, subprocess, re, shutil, stat
 
 if len(sys.argv) < 3:
-    print "Usage: %s fname dir" % (os.path.basename(sys.argv[0]))
+    print "Usage: %s fname output-dir" % (os.path.basename(sys.argv[0]))
     sys.exit(1)
 FNAME, DIRN = sys.argv[1], sys.argv[2]
 

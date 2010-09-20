@@ -32,9 +32,18 @@ wrapper_name = os.path.join( DIRN, "%s-wrapped" % os.path.basename(FNAME) )
 f = open( wrapper_name , "w" )
 f.write( """#!/bin/bash
 
-export LD_LIBRARY_PATH=`pwd`
-export AUDIT_PREFIX=`pwd`
-exec ./ld-linux.so.2 --audit libaudit.so ./%s $@
+SCRIPT_DIR="${BASH_SOURCE[0]}";
+if([ -h "${SCRIPT_DIR}" ]) then
+  while([ -h "${SCRIPT_DIR}" ]) do SCRIPT_DIR=`readlink "${SCRIPT_DIR}"`; done
+fi
+pushd . > /dev/null
+cd `dirname ${SCRIPT_DIR}` > /dev/null
+SCRIPT_DIR=`pwd`;
+popd  > /dev/null
+
+export LD_LIBRARY_PATH=$SCRIPT_DIR
+export AUDIT_PREFIX=$SCRIPT_DIR
+exec $SCRIPT_DIR/ld-linux.so.2 --audit libaudit.so $SCRIPT_DIR/%s $@
 """ % os.path.basename(FNAME) )
 f.close()
 

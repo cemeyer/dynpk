@@ -32,7 +32,7 @@ f = open( wrapper_name , "w" )
 f.write( """#!/bin/bash
 
 export LD_LIBRARY_PATH=`pwd`
-exec ./ld-linux.so.2 ./%s
+exec ./ld-linux.so.2 ./%s $@
 """ % os.path.basename(FNAME) )
 f.close()
 

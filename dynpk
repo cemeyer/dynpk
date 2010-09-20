@@ -24,15 +24,17 @@ shutil.copy( FNAME, DIRN )
 os.chmod( os.path.join( DIRN, os.path.basename(FNAME) ),
           stat.S_IRUSR | stat.S_IWUSR )
 
-# Now copy the dynamic linker across
+# Now copy the dynamic linker and our auditor across
 shutil.copy( "/lib/ld-linux.so.2", DIRN )
+shutil.copy( "./libaudit.so", DIRN )
 
 wrapper_name = os.path.join( DIRN, "%s-wrapped" % os.path.basename(FNAME) )
 f = open( wrapper_name , "w" )
 f.write( """#!/bin/bash
 
 export LD_LIBRARY_PATH=`pwd`
-exec ./ld-linux.so.2 ./%s $@
+export AUDIT_PREFIX=`pwd`
+exec ./ld-linux.so.2 --audit libaudit.so ./%s $@
 """ % os.path.basename(FNAME) )
 f.close()
 

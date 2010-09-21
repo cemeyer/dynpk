@@ -1,5 +1,7 @@
 /* Prevent dynamic libraries from being loaded from places we don't want */
-/*  This program is free software: you can redistribute it and/or modify
+/*  Copyright 2010 Robert Spanton <rspanton@zepler.net>
+
+    This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.

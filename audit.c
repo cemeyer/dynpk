@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 unsigned int la_version( unsigned int version )
 {
@@ -26,12 +27,18 @@ unsigned int la_version( unsigned int version )
 
 unsigned int la_objopen( struct link_map *lmp, Lmid_t lmid, unsigned int *cookie )
 {
-	char *prefix = getenv("AUDIT_PREFIX");
+	static char *prefix = NULL;
 	char *absname;
 
 	if( prefix == NULL ) {
-		fprintf( stderr, "ERROR: No audit prefix specified in AUDIT_PREFIX environment variable\n" );
-		exit(1);
+		prefix = getenv("AUDIT_PREFIX");
+		if( prefix == NULL ) {
+			fprintf( stderr, "ERROR: No audit prefix specified in AUDIT_PREFIX environment variable\n" );
+			exit(1);
+		}
+
+		prefix = canonicalize_file_name( prefix );
+		assert( prefix != NULL );
 	}
 
 	if( lmp->l_name[0] != 0 ) {

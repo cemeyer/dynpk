@@ -38,7 +38,9 @@ os.chmod( os.path.join( DIRN, os.path.basename(FNAME) ),
 
 # Now copy the dynamic linker and our auditor across
 shutil.copy( "/lib/ld-linux.so.2", DIRN )
-shutil.copy( "./libaudit.so", DIRN )
+
+script_dir = os.path.dirname( os.path.abspath(__file__) )
+shutil.copy( os.path.join( script_dir, "libaudit.so" ), DIRN )
 
 wrapper_name = os.path.join( DIRN, "%s-wrapped" % os.path.basename(FNAME) )
 f = open( wrapper_name , "w" )

@@ -14,37 +14,21 @@
 import os, sys, subprocess, re, shutil, stat
 
 if len(sys.argv) < 3:
-    print "Usage: %s fname output-dir" % (os.path.basename(sys.argv[0]))
+    print "Usage: %s output-dir exec1 [exec2 ...]" % (os.path.basename(sys.argv[0]))
     sys.exit(1)
-FNAME, DIRN = sys.argv[1], sys.argv[2]
 
-os.mkdir( DIRN )
+def get_libs(fname):
+    p = subprocess.Popen("ldd %s | grep '=>'" % fname,
+                         shell = True,
+                         stdout = subprocess.PIPE)
+    so, se = p.communicate()
+    assert p.wait() == 0
 
-p = subprocess.Popen("ldd %s | grep '=>'" % FNAME,
-                     shell = True,
-                     stdout = subprocess.PIPE)
-so, se = p.communicate()
-assert p.wait() == 0
+    return re.findall( "/[^ ]+", so )
 
-for l in re.findall( "/[^ ]+", so ):
-    shutil.copy( l, DIRN )
-
-# Copy the binary across
-shutil.copy( FNAME, DIRN )
-# Remove executable permissions from it
-# as it has to be run through the wrapper script
-os.chmod( os.path.join( DIRN, os.path.basename(FNAME) ),
-          stat.S_IRUSR | stat.S_IWUSR )
-
-# Now copy the dynamic linker and our auditor across
-shutil.copy( "/lib/ld-linux.so.2", DIRN )
-
-script_dir = os.path.dirname( os.path.abspath(__file__) )
-shutil.copy( os.path.join( script_dir, "libaudit.so" ), DIRN )
-
-wrapper_name = os.path.join( DIRN, "%s-wrapped" % os.path.basename(FNAME) )
-f = open( wrapper_name , "w" )
-f.write( """#!/bin/bash
+def write_wrapper(fname, wrapper_name):
+    f = open( wrapper_name , "w" )
+    f.write( """#!/bin/bash
 
 SCRIPT_DIR="${BASH_SOURCE[0]}";
 if([ -h "${SCRIPT_DIR}" ]) then
@@ -55,11 +39,47 @@ cd `dirname ${SCRIPT_DIR}` > /dev/null
 SCRIPT_DIR=`pwd`;
 popd  > /dev/null
 
-export LD_LIBRARY_PATH=$SCRIPT_DIR
-export AUDIT_PREFIX=$SCRIPT_DIR
-exec $SCRIPT_DIR/ld-linux.so.2 --audit libaudit.so $SCRIPT_DIR/%s $@
-""" % os.path.basename(FNAME) )
-f.close()
+LIBDIR=$SCRIPT_DIR/..
 
-# Add executable permissions
-os.chmod( wrapper_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR )
+export AUDIT_PREFIX=$LIBDIR
+exec $LIBDIR/ld-linux.so.2 --library-path $LIBDIR --audit libaudit.so $LIBDIR/%s $@
+""" % os.path.basename(fname) )
+    f.close()
+
+    # Add executable permissions
+    os.chmod( wrapper_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR )
+
+DIRN = sys.argv[1]
+fnames = sys.argv[2:]
+
+os.makedirs( DIRN )
+BINDIR = os.path.join( DIRN, "bin" )
+os.mkdir( BINDIR )
+
+# Dynamic linker:
+shutil.copy( "/lib/ld-linux.so.2", DIRN )
+# Auditor:
+script_dir = os.path.dirname( os.path.abspath(__file__) )
+shutil.copy( os.path.join( script_dir, "libaudit.so" ), DIRN )
+
+libs = set()
+
+# Copy the binaries across:
+for fname in fnames:
+    shutil.copy( fname, DIRN )
+
+    for lib in get_libs(fname):
+        libs.add(lib)
+
+    basename = os.path.basename(fname)
+
+    # Remove executable permissions from it
+    # as it has to be run through the wrapper script
+    os.chmod( os.path.join( DIRN, basename ),
+              stat.S_IRUSR | stat.S_IWUSR )
+
+    write_wrapper(fname, os.path.join(BINDIR, basename))
+
+# Copy the libraries in:
+for lib in libs:
+    shutil.copy( lib, DIRN )
